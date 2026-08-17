@@ -17,6 +17,10 @@ Ein geplanter Cloud-Agent aktualisiert das Journal werktags um 17:30 Uhr (Europe
 Live-Kurse abrufen, offene Orders auflösen, neue Setups nach Regelwerk prüfen,
 Tagesabschluss schreiben, committen.
 
+Dieses Repo ist öffentlich, weil der Cloud-Agent sonst keinen Zugriff hätte. Es enthält
+ausschließlich Simulationsdaten — keine API-Keys, keine Broker-Zugänge, keine echten
+Kontodaten.
+
 ## Datenquellen
 
 Live-Kurse über öffentliche APIs (Kraken, Coinbase). Alles, was nicht aus Live-Daten
