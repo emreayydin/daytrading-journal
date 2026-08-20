@@ -147,3 +147,85 @@ These tot. Der Stop bei 65.450 puffert genau diesen Fehlausbruch ab.
 | Gebühren 0,05 % Taker/Seite | ⚠️ **ANNAHME** — vor Realbetrieb am eigenen Broker verifizieren |
 | ATR-Puffer für Stop-Platzierung | ⚠️ **ANNAHME** — aus Tagesrange abgeleitet, kein echter ATR(14) |
 | Volumenprofil / Orderbuchtiefe | ⚠️ **NICHT geprüft** — nur 24h-Volumen bekannt |
+
+---
+
+# Backtest — 2 Wochen (05.08.–20.08.2026)
+
+**Was das ist:** Das Regelwerk mechanisch über echte 30-Minuten-Kerzen der letzten zwei
+Wochen gerechnet. Kein Vorwärtstest — die Kursdaten lagen bereits vor. Datenquelle:
+Kraken OHLC API, 721 Kerzen je Asset.
+
+**Was das nicht ist:** Kein Beweis für einen Edge. Siehe Signifikanz unten.
+
+## Mechanische Regelumsetzung
+
+| Regel | Umsetzung im Code |
+|---|---|
+| Setup A (ORB) | Opening Range = erste Stunde des Fensters; Einstieg bei 30m-Schluss jenseits der OR-Kante; Trendfilter SMA(50) |
+| Setup B (Fade) | Nur bei ADX(14) < 20; Einstieg an 24h-Range-Kante gegen SMA(50) |
+| Stop | Gegenseite der OR ± 0,25 × ATR(14); nur 0,6 %–2,0 % zugelassen |
+| Exits | TP1 +1,5R (50 %), TP2 +2,0R (25 %, Stop→+1R), TP3 +3,0R (25 %) |
+| Zeit-Stop | < +0,5R nach 3 Kerzen (90 Min) |
+| Risiko | 1,0 % (Probezeit), Notional-Cap 3× |
+| Gebühren | 0,05 % je Seite |
+| Sequenzierung | Stop und Ziel in derselben Kerze → **Stop zählt zuerst** |
+
+## Ergebnis
+
+| | Ideal (nur Gebühren) | Realistisch (+ Slippage) |
+|---|---|---|
+| Trades | 15 | 16 |
+| Trefferquote | 53,3 % | 50,0 % |
+| **Endkapital** | **1.056,81 USD (+5,68 %)** | **1.023,51 USD (+2,35 %)** |
+| Erwartungswert | +0,279R | **+0,098R** |
+| Standardabweichung | 0,809R | 0,710R |
+| **t-Statistik** | **1,34** | **0,55** |
+| Max Drawdown | −1,50 % | −2,42 % |
+
+Slippage-Annahme realistisch: 0,05 % beim Einstieg, 0,15 % bei Stop-Ausführungen.
+
+## Die entscheidende Zahl
+
+**t = 1,34 (ideal) bzw. 0,55 (realistisch).** Signifikanz beginnt bei ~2,0.
+
+Bei dieser Streuung bräuchte es **~34 Trades** (ideal) bzw. **~209 Trades** (realistisch),
+um den Erwartungswert von Zufall zu unterscheiden. Bei 1,4 Trades pro Tag sind das
+**5 Wochen** bzw. **7 Monate**.
+
+**Diese zwei Wochen beweisen nichts.** Sie sind mit einer Strategie ohne jeden Edge
+vollständig vereinbar.
+
+## Was auffällt (aber NICHT geändert wird)
+
+| Beobachtung | Zahl | Warum keine Änderung |
+|---|---|---|
+| Zeit-Stop ist der größte Verlustbringer | 8 von 15 Exits, in Summe **−1,11R** | Er schneidet Trades ab, bevor sie arbeiten. Bei n=8 wäre eine Anpassung reines Curve-Fitting |
+| SOL liefert nichts | 8 Trades, in Summe **−0,12R** | Bindet 53 % der Trades für null Ertrag. Bei n=8 statistisch bedeutungslos |
+| BTC trägt alles | 4 Trades, **+3,05R** | Ein einziger Trade (+1,94R) macht die Hälfte davon aus |
+| Setup B ist nie ausgelöst | **0 von 15** | Der Range-Filter (ADX < 20) hat in zwei Wochen nie gegriffen. Ungetestet, nicht widerlegt |
+| Nur 1 Trade erreichte das Endziel | 1 von 15 | Der Runner-Anteil trägt kaum |
+
+**Regeländerungen: keine.** Nach 15 Trades an den Parametern zu drehen, würde die
+Strategie an genau diese zwei Wochen anpassen — und damit jede Aussagekraft der
+nächsten 15 Trades zerstören.
+
+## Gefundene Spezifikations-Lücke
+
+Der Backtest hat an **Samstag (08.08.) und Sonntag (09.08.)** gehandelt — Krypto läuft
+24/7, das Zeitfenster-Filter kennt keine Wochentage. Die Cloud-Routine läuft dagegen
+nur **Mo–Fr**. Beide Trades waren Verlierer (−0,21R, −0,01R).
+
+Das ist ein echter Widerspruch im Regelwerk und muss vor dem nächsten Lauf entschieden
+werden: entweder 7 Tage handeln (Krypto ist durchgehend offen) oder Wochenenden
+explizit ausschließen. Aktuell steht beides nebeneinander.
+
+## Fazit
+
+Die Strategie ist über zwei Wochen **leicht positiv** — und das ist die ehrlichste
+Formulierung, die die Daten hergeben. Der Sprung von +5,68 % auf +2,35 % allein durch
+realistische Slippage zeigt, wie dünn die Marge ist: **Slippage frisst 65 % des
+Erwartungswerts.**
+
+Bei 0,5 % Gebühren statt 0,05 % wäre das Ergebnis negativ. Die Wahl der Börse
+entscheidet hier mehr als die Strategie.
